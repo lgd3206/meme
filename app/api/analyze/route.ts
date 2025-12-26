@@ -5,6 +5,7 @@ import http from 'http';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import zh from '@/locales/zh.json';
 import en from '@/locales/en.json';
+import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
 
 const translations = { zh, en };
 
@@ -35,6 +36,41 @@ const client = new OpenAI({
 
 export async function POST(request: NextRequest) {
   try {
+    const { imageData, language = 'zh' } = await request.json();
+
+    // 速率限制检查
+    const ip = getClientIp(request);
+    console.log('🌐 请求 IP:', ip);
+
+    const rateLimitResult = await checkRateLimit(ip);
+
+    if (!rateLimitResult.success) {
+      console.warn('⚠️ 速率限制触发:', ip);
+      return NextResponse.json(
+        {
+          success: false,
+          error: language === 'zh'
+            ? `请求过于频繁，请稍后再试。剩余次数：${rateLimitResult.remaining}/${rateLimitResult.limit}`
+            : `Too many requests. Please try again later. Remaining: ${rateLimitResult.remaining}/${rateLimitResult.limit}`,
+          rateLimit: {
+            limit: rateLimitResult.limit,
+            remaining: rateLimitResult.remaining,
+            reset: rateLimitResult.reset,
+          },
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': rateLimitResult.reset.toString(),
+          },
+        }
+      );
+    }
+
+    console.log('✅ 速率限制检查通过，剩余次数:', rateLimitResult.remaining);
+
     // 检查 API Key
     if (!process.env.XAI_API_KEY) {
       console.error('❌ XAI_API_KEY 未配置');
@@ -46,8 +82,6 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-
-    const { imageData, language = 'zh' } = await request.json();
 
     if (!imageData) {
       return NextResponse.json(

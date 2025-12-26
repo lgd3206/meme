@@ -9,6 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.32.1",
+    "@upstash/ratelimit": "^2.0.7",
+    "@upstash/redis": "^1.36.0",
     "https-proxy-agent": "^7.0.6",
     "next": "16.1.1",
     "node-fetch": "^2.7.0",
