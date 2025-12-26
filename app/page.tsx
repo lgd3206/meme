@@ -52,6 +52,8 @@ export default function Home() {
     setError(null);
 
     try {
+      console.log('🚀 开始分析图片...');
+
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: {
@@ -60,15 +62,31 @@ export default function Home() {
         body: JSON.stringify({ imageData: selectedImage }),
       });
 
+      console.log('📡 响应状态:', response.status, response.statusText);
+
       const data = await response.json();
+      console.log('📦 响应数据:', data);
 
       if (data.success) {
         setResult(data.explanation);
+        console.log('✅ 分析成功！');
       } else {
-        setError(data.error || '分析失败');
+        const errorMsg = data.details
+          ? `${data.error}\n\n详情: ${data.details}`
+          : data.error || '分析失败';
+
+        setError(errorMsg);
+        console.error('❌ 分析失败:', errorMsg);
+
+        // 如果有调试信息，输出到控制台
+        if (data.debugInfo) {
+          console.error('🔍 调试信息:', data.debugInfo);
+        }
       }
-    } catch (err) {
-      setError('网络错误，请稍后重试');
+    } catch (err: any) {
+      const errorMsg = `网络错误: ${err.message || '请检查网络连接或稍后重试'}`;
+      setError(errorMsg);
+      console.error('❌ 请求失败:', err);
     } finally {
       setIsAnalyzing(false);
     }
