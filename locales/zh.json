@@ -1,0 +1,50 @@
+{
+  "name": "中文",
+  "code": "zh",
+  "hero": {
+    "title": "🎭 流行梗图解释器",
+    "subtitle": "看不懂网上的梗图？让 AI 帮你秒懂梗文化！",
+    "poweredBy": "Powered by Grok Vision AI"
+  },
+  "upload": {
+    "title": "选择梗图",
+    "dragHint": "或拖拽图片到这里",
+    "formatHint": "支持 JPG、PNG、GIF、WebP 等格式",
+    "analyzing": "AI 正在分析中...",
+    "analyze": "🔍 开始解读梗图",
+    "analyzeNext": "🔄 分析下一张"
+  },
+  "result": {
+    "title": "🤖 AI 解读结果"
+  },
+  "features": {
+    "upload": {
+      "icon": "📸",
+      "title": "上传梗图",
+      "description": "上传你看不懂的网络梗图或表情包"
+    },
+    "analyze": {
+      "icon": "🤖",
+      "title": "AI 分析",
+      "description": "Grok AI 快速识别并解读梗的含义"
+    },
+    "understand": {
+      "icon": "💡",
+      "title": "秒懂梗文化",
+      "description": "获取详细的来源、含义和使用场景"
+    }
+  },
+  "footer": {
+    "madeWith": "Made with ❤️ using Grok Vision AI",
+    "openSource": "项目开源"
+  },
+  "errors": {
+    "uploadImage": "请上传图片",
+    "analysisFailed": "分析失败",
+    "networkError": "网络错误: {{message}}",
+    "tryAgain": "请稍后重试"
+  },
+  "apiPrompt": {
+    "systemPrompt": "请详细分析这张梗图（meme）：\n\n1. **图片内容描述**：这张图片里有什么？\n2. **梗的来源**：这个梗来自哪里？什么时候开始流行的？\n3. **梗的含义**：这个梗想表达什么意思？通常在什么场景下使用？\n4. **文化背景**：有什么相关的文化背景或事件吗？\n5. **使用示例**：人们通常在什么情况下会用这个梗？\n\n请用轻松有趣的语气解释，让不了解网络文化的人也能听懂。如果图片不是梗图，请说明这只是一张普通图片。"
+  }
+}

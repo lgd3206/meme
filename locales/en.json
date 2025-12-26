@@ -1,0 +1,50 @@
+{
+  "name": "English",
+  "code": "en",
+  "hero": {
+    "title": "🎭 Meme Explainer",
+    "subtitle": "Don't understand that meme? Let AI help you get it instantly!",
+    "poweredBy": "Powered by Grok Vision AI"
+  },
+  "upload": {
+    "title": "Choose a Meme",
+    "dragHint": "or drag and drop your image here",
+    "formatHint": "Supports JPG, PNG, GIF, WebP and more",
+    "analyzing": "AI is analyzing...",
+    "analyze": "🔍 Analyze This Meme",
+    "analyzeNext": "🔄 Analyze Another"
+  },
+  "result": {
+    "title": "🤖 AI Analysis Result"
+  },
+  "features": {
+    "upload": {
+      "icon": "📸",
+      "title": "Upload Meme",
+      "description": "Upload any meme or internet image you don't understand"
+    },
+    "analyze": {
+      "icon": "🤖",
+      "title": "AI Analysis",
+      "description": "Grok AI quickly identifies and explains the meaning"
+    },
+    "understand": {
+      "icon": "💡",
+      "title": "Get It Instantly",
+      "description": "Learn the origin, meaning and usage context"
+    }
+  },
+  "footer": {
+    "madeWith": "Made with ❤️ using Grok Vision AI",
+    "openSource": "Open Source"
+  },
+  "errors": {
+    "uploadImage": "Please upload an image",
+    "analysisFailed": "Analysis failed",
+    "networkError": "Network error: {{message}}",
+    "tryAgain": "Please try again later"
+  },
+  "apiPrompt": {
+    "systemPrompt": "Please analyze this meme in detail:\n\n1. **Image Description**: What's in this image?\n2. **Meme Origin**: Where does this meme come from? When did it become popular?\n3. **Meaning**: What does this meme mean? In what situations is it typically used?\n4. **Cultural Context**: Is there any relevant cultural background or events?\n5. **Usage Examples**: When do people usually use this meme?\n\nPlease explain in a fun and accessible way that anyone can understand, even if they're not familiar with internet culture. If this is not a meme, please indicate it's just a regular image."
+  }
+}

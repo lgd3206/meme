@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Home() {
+  const { language, setLanguage, t } = useLanguage();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<string | null>(null);
@@ -59,7 +61,10 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ imageData: selectedImage }),
+        body: JSON.stringify({
+          imageData: selectedImage,
+          language: language
+        }),
       });
 
       console.log('📡 响应状态:', response.status, response.statusText);
@@ -72,19 +77,18 @@ export default function Home() {
         console.log('✅ 分析成功！');
       } else {
         const errorMsg = data.details
-          ? `${data.error}\n\n详情: ${data.details}`
-          : data.error || '分析失败';
+          ? `${data.error}\n\n${t.errors.tryAgain}: ${data.details}`
+          : data.error || t.errors.analysisFailed;
 
         setError(errorMsg);
         console.error('❌ 分析失败:', errorMsg);
 
-        // 如果有调试信息，输出到控制台
         if (data.debugInfo) {
           console.error('🔍 调试信息:', data.debugInfo);
         }
       }
     } catch (err: any) {
-      const errorMsg = `网络错误: ${err.message || '请检查网络连接或稍后重试'}`;
+      const errorMsg = t.errors.networkError.replace('{{message}}', err.message || '');
       setError(errorMsg);
       console.error('❌ 请求失败:', err);
     } finally {
@@ -95,16 +99,42 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-gray-900">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* 语言切换按钮 */}
+        <div className="flex justify-end mb-4">
+          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-full p-1 shadow-lg">
+            <button
+              onClick={() => setLanguage('zh')}
+              className={`px-4 py-2 rounded-full font-medium transition-all ${
+                language === 'zh'
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              中文
+            </button>
+            <button
+              onClick={() => setLanguage('en')}
+              className={`px-4 py-2 rounded-full font-medium transition-all ${
+                language === 'en'
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              English
+            </button>
+          </div>
+        </div>
+
         {/* 头部 */}
         <header className="text-center mb-12">
           <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
-            🎭 流行梗图解释器
+            {t.hero.title}
           </h1>
           <p className="text-gray-600 dark:text-gray-300 text-lg">
-            看不懂网上的梗图？让 AI 帮你秒懂梗文化！
+            {t.hero.subtitle}
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            Powered by Grok Vision AI
+            {t.hero.poweredBy}
           </p>
         </header>
 
@@ -154,7 +184,7 @@ export default function Home() {
                     d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                   />
                 </svg>
-                选择梗图
+                {t.upload.title}
               </label>
               <input
                 id="file-upload"
@@ -164,10 +194,10 @@ export default function Home() {
                 className="hidden"
               />
               <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-                或拖拽图片到这里
+                {t.upload.dragHint}
               </p>
               <p className="mt-2 text-xs text-gray-400">
-                支持 JPG、PNG、GIF、WebP 等格式
+                {t.upload.formatHint}
               </p>
             </div>
           ) : (
@@ -176,7 +206,7 @@ export default function Home() {
               <div className="relative mb-6">
                 <Image
                   src={selectedImage}
-                  alt="预览"
+                  alt="Preview"
                   width={800}
                   height={600}
                   className="w-full h-auto max-h-96 object-contain rounded-xl"
@@ -234,10 +264,10 @@ export default function Home() {
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                         ></path>
                       </svg>
-                      AI 正在分析中...
+                      {t.upload.analyzing}
                     </span>
                   ) : (
-                    '🔍 开始解读梗图'
+                    t.upload.analyze
                   )}
                 </button>
               )}
@@ -255,7 +285,7 @@ export default function Home() {
                   <div className="flex items-center mb-4">
                     <span className="text-2xl mr-2">🤖</span>
                     <h3 className="text-xl font-bold text-purple-900 dark:text-purple-300">
-                      AI 解读结果
+                      {t.result.title}
                     </h3>
                   </div>
                   <div className="prose dark:prose-invert max-w-none">
@@ -270,7 +300,7 @@ export default function Home() {
                     }}
                     className="mt-6 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all"
                   >
-                    🔄 分析下一张
+                    {t.upload.analyzeNext}
                   </button>
                 </div>
               )}
@@ -281,42 +311,44 @@ export default function Home() {
         {/* 使用说明 */}
         <div className="grid md:grid-cols-3 gap-6 text-center">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
-            <div className="text-4xl mb-3">📸</div>
+            <div className="text-4xl mb-3">{t.features.upload.icon}</div>
             <h3 className="font-bold text-lg mb-2 text-gray-800 dark:text-gray-200">
-              上传梗图
+              {t.features.upload.title}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              上传你看不懂的网络梗图或表情包
+              {t.features.upload.description}
             </p>
           </div>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
-            <div className="text-4xl mb-3">🤖</div>
+            <div className="text-4xl mb-3">{t.features.analyze.icon}</div>
             <h3 className="font-bold text-lg mb-2 text-gray-800 dark:text-gray-200">
-              AI 分析
+              {t.features.analyze.title}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Grok AI 快速识别并解读梗的含义
+              {t.features.analyze.description}
             </p>
           </div>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
-            <div className="text-4xl mb-3">💡</div>
+            <div className="text-4xl mb-3">{t.features.understand.icon}</div>
             <h3 className="font-bold text-lg mb-2 text-gray-800 dark:text-gray-200">
-              秒懂梗文化
+              {t.features.understand.title}
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              获取详细的来源、含义和使用场景
+              {t.features.understand.description}
             </p>
           </div>
         </div>
 
         {/* 页脚 */}
         <footer className="mt-12 text-center text-sm text-gray-500 dark:text-gray-400">
-          <p>Made with ❤️ using Grok Vision AI</p>
+          <p>{t.footer.madeWith}</p>
           <p className="mt-2">
-            项目开源 •{' '}
+            {t.footer.openSource} •{' '}
             <a
-              href="https://github.com"
+              href="https://github.com/lgd3206/meme"
               className="text-purple-600 hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
             >
               GitHub
             </a>

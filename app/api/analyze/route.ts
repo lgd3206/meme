@@ -3,6 +3,10 @@ import OpenAI from 'openai';
 import https from 'https';
 import http from 'http';
 import { HttpsProxyAgent } from 'https-proxy-agent';
+import zh from '@/locales/zh.json';
+import en from '@/locales/en.json';
+
+const translations = { zh, en };
 
 // 配置代理
 const proxyUrl = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
@@ -43,7 +47,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { imageData } = await request.json();
+    const { imageData, language = 'zh' } = await request.json();
 
     if (!imageData) {
       return NextResponse.json(
@@ -53,7 +57,12 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('📤 开始调用 Grok API...');
+    console.log('🌐 语言:', language);
     console.log('🔑 API Key 前缀:', process.env.XAI_API_KEY?.substring(0, 10) + '...');
+
+    // 根据语言选择提示词
+    const lang: 'zh' | 'en' = (language === 'zh' || language === 'en') ? language : 'zh';
+    const promptText = translations[lang].apiPrompt.systemPrompt;
 
     // 调用 Grok Vision API 分析梗图
     const completion = await client.chat.completions.create({
@@ -70,15 +79,7 @@ export async function POST(request: NextRequest) {
             },
             {
               type: 'text',
-              text: `请详细分析这张梗图（meme）：
-
-1. **图片内容描述**：这张图片里有什么？
-2. **梗的来源**：这个梗来自哪里？什么时候开始流行的？
-3. **梗的含义**：这个梗想表达什么意思？通常在什么场景下使用？
-4. **文化背景**：有什么相关的文化背景或事件吗？
-5. **使用示例**：人们通常在什么情况下会用这个梗？
-
-请用轻松有趣的语气解释，让不了解网络文化的人也能听懂。如果图片不是梗图，请说明这只是一张普通图片。`,
+              text: promptText,
             },
           ],
         },
