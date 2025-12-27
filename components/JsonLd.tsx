@@ -6,7 +6,7 @@ export default function JsonLd() {
     '@type': 'WebApplication',
     name: 'Meme Explainer',
     description: 'AI-powered meme analysis tool using Grok Vision AI',
-    url: process.env.NEXT_PUBLIC_BASE_URL || 'https://meme-explainer.vercel.app',
+    url: process.env.NEXT_PUBLIC_BASE_URL || 'https://explainthismeme.online',
     applicationCategory: 'EntertainmentApplication',
     operatingSystem: 'Web Browser',
     offers: {

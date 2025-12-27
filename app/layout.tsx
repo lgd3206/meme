@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://meme-explainer.vercel.app';
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://explainthismeme.online';
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
