@@ -2,8 +2,8 @@
   "name": "English",
   "code": "en",
   "hero": {
-    "title": "🎭 Meme Explainer",
-    "subtitle": "Don't understand that meme? Let AI help you get it instantly!",
+    "title": "Explain This Meme - AI Meme Explainer",
+    "subtitle": "Can't understand that meme? Upload any meme and get instant AI-powered explanations!",
     "poweredBy": "Powered by Grok Vision AI"
   },
   "upload": {

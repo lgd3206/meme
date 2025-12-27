@@ -2,9 +2,9 @@
   "name": "中文",
   "code": "zh",
   "hero": {
-    "title": "🎭 流行梗图解释器",
-    "subtitle": "看不懂网上的梗图？让 AI 帮你秒懂梗文化！",
-    "poweredBy": "Powered by Grok Vision AI"
+    "title": "解释这个梗 - AI梗图解释器",
+    "subtitle": "看不懂网上的梗图？上传任何梗图，AI立即解释含义、来源和使用场景！",
+    "poweredBy": "基于 Grok Vision AI 技术"
   },
   "upload": {
     "title": "选择梗图",

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { useLanguage } from '@/contexts/LanguageContext';
 import JsonLd from '@/components/JsonLd';
+import FaqSchema from '@/components/FaqSchema';
 
 export default function Home() {
   const { language, setLanguage, t } = useLanguage();
@@ -100,6 +101,7 @@ export default function Home() {
   return (
     <>
       <JsonLd />
+      <FaqSchema />
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-gray-900">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* 语言切换按钮 */}
