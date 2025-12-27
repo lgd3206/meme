@@ -1,0 +1,379 @@
+'use client';
+
+import { useState } from 'react';
+import Image from 'next/image';
+import { useLanguage } from '@/contexts/LanguageContext';
+import JsonLd from '@/components/JsonLd';
+import FaqSchema from '@/components/FaqSchema';
+
+export default function HomeClient() {
+  const { language, setLanguage, t } = useLanguage();
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const setLanguageWithUrl = (lang: 'zh' | 'en') => {
+    setLanguage(lang);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('lang', lang);
+      window.history.replaceState(null, '', url.toString());
+    } catch {}
+  };
+
+  const handleImageSelect = (file: File) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setSelectedImage(reader.result as string);
+      setResult(null);
+      setError(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      handleImageSelect(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      handleImageSelect(file);
+    }
+  };
+
+  const analyzeImage = async () => {
+    if (!selectedImage) return;
+
+    setIsAnalyzing(true);
+    setError(null);
+
+    try {
+      console.log('🚀 开始分析图片...');
+
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageData: selectedImage,
+          language: language
+        }),
+      });
+
+      console.log('📡 响应状态:', response.status, response.statusText);
+
+      const data = await response.json();
+      console.log('📦 响应数据:', data);
+
+      if (data.success) {
+        setResult(data.explanation);
+        console.log('✅ 分析成功！');
+      } else {
+        const errorMsg = data.details
+          ? `${data.error}\n\n${t.errors.tryAgain}: ${data.details}`
+          : data.error || t.errors.analysisFailed;
+
+        setError(errorMsg);
+        console.error('❌ 分析失败:', errorMsg);
+
+        if (data.debugInfo) {
+          console.error('🔍 调试信息:', data.debugInfo);
+        }
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '';
+      const errorMsg = t.errors.networkError.replace('{{message}}', message);
+      setError(errorMsg);
+      console.error('❌ 请求失败:', err);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  return (
+    <>
+      <JsonLd />
+      <FaqSchema />
+      <div
+        lang={language}
+        className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-gray-900"
+      >
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* 语言切换按钮 */}
+        <div className="flex justify-end mb-4">
+          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-full p-1 shadow-lg">
+            <button
+              onClick={() => setLanguageWithUrl('zh')}
+              className={`px-4 py-2 rounded-full font-medium transition-all ${
+                language === 'zh'
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              中文
+            </button>
+            <button
+              onClick={() => setLanguageWithUrl('en')}
+              className={`px-4 py-2 rounded-full font-medium transition-all ${
+                language === 'en'
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              English
+            </button>
+          </div>
+        </div>
+
+        {/* 头部 */}
+        <header className="text-center mb-12">
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
+            {t.hero.title}
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 text-lg">
+            {t.hero.subtitle}
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            {t.hero.poweredBy}
+          </p>
+        </header>
+
+        {/* 主内容区 */}
+        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 mb-8">
+          {/* 上传区域 */}
+          {!selectedImage ? (
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`border-4 border-dashed rounded-2xl p-16 text-center transition-all ${
+                isDragging
+                  ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                  : 'border-gray-300 dark:border-gray-600 hover:border-purple-400'
+              }`}
+            >
+              <div className="mb-6">
+                <svg
+                  className="mx-auto h-24 w-24 text-gray-400"
+                  stroke="currentColor"
+                  fill="none"
+                  viewBox="0 0 48 48"
+                >
+                  <path
+                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+              <label
+                htmlFor="file-upload"
+                className="cursor-pointer inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-full hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105"
+              >
+                <svg
+                  className="w-5 h-5 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                  />
+                </svg>
+                {t.upload.title}
+              </label>
+              <input
+                id="file-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                {t.upload.dragHint}
+              </p>
+              <p className="mt-2 text-xs text-gray-400">
+                {t.upload.formatHint}
+              </p>
+            </div>
+          ) : (
+            <div>
+              {/* 预览图片 */}
+              <div className="relative mb-6">
+                <Image
+                  src={selectedImage}
+                  alt="Preview"
+                  width={800}
+                  height={600}
+                  className="w-full h-auto max-h-96 object-contain rounded-xl"
+                />
+                <button
+                  onClick={() => {
+                    setSelectedImage(null);
+                    setResult(null);
+                    setError(null);
+                  }}
+                  className="absolute top-4 right-4 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-all shadow-lg"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* 分析按钮 */}
+              {!result && (
+                <button
+                  onClick={analyzeImage}
+                  disabled={isAnalyzing}
+                  className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-lg rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  {isAnalyzing ? (
+                    <span className="flex items-center justify-center">
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      {t.upload.analyzing}
+                    </span>
+                  ) : (
+                    t.upload.analyze
+                  )}
+                </button>
+              )}
+
+              {/* 错误提示 */}
+              {error && (
+                <div className="mt-4 p-4 bg-red-100 dark:bg-red-900/30 border border-red-400 text-red-700 dark:text-red-300 rounded-lg">
+                  ❌ {error}
+                </div>
+              )}
+
+              {/* 分析结果 */}
+              {result && (
+                <div className="mt-6 p-6 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200 dark:border-purple-700">
+                  <div className="flex items-center mb-4">
+                    <span className="text-2xl mr-2">🤖</span>
+                    <h3 className="text-xl font-bold text-purple-900 dark:text-purple-300">
+                      {t.result.title}
+                    </h3>
+                  </div>
+                  <div className="prose dark:prose-invert max-w-none">
+                    <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
+                      {result}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedImage(null);
+                      setResult(null);
+                    }}
+                    className="mt-6 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all"
+                  >
+                    {t.upload.analyzeNext}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 使用说明 */}
+        <div className="grid md:grid-cols-3 gap-6 text-center">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+            <div className="text-4xl mb-3">{t.features.upload.icon}</div>
+            <h3 className="font-bold text-lg mb-2 text-gray-800 dark:text-gray-200">
+              {t.features.upload.title}
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {t.features.upload.description}
+            </p>
+          </div>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+            <div className="text-4xl mb-3">{t.features.analyze.icon}</div>
+            <h3 className="font-bold text-lg mb-2 text-gray-800 dark:text-gray-200">
+              {t.features.analyze.title}
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {t.features.analyze.description}
+            </p>
+          </div>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+            <div className="text-4xl mb-3">{t.features.understand.icon}</div>
+            <h3 className="font-bold text-lg mb-2 text-gray-800 dark:text-gray-200">
+              {t.features.understand.title}
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              {t.features.understand.description}
+            </p>
+          </div>
+        </div>
+
+        {/* 页脚 */}
+        <footer className="mt-12 text-center text-sm text-gray-500 dark:text-gray-400">
+          <p>{t.footer.madeWith}</p>
+          <p className="mt-2">
+            {t.footer.openSource} •{' '}
+            <a
+              href="https://github.com/lgd3206/meme"
+              className="text-purple-600 hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              GitHub
+            </a>
+          </p>
+        </footer>
+      </div>
+    </div>
+    </>
+  );
+}

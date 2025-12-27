@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { LanguageProvider } from "@/contexts/LanguageContext";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 
 const geistSans = Geist({
@@ -68,7 +67,7 @@ export const metadata: Metadata = {
     siteName: "Explain This Meme",
     images: [
       {
-        url: `${baseUrl}/og-image.png`,
+        url: '/opengraph-image',
         width: 1200,
         height: 630,
         alt: "Explain This Meme - AI Meme Explainer Tool",
@@ -79,7 +78,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Explain This Meme - AI Meme Explainer",
     description: "Can't understand a meme? Get instant AI-powered explanations. Never miss the joke again.",
-    images: [`${baseUrl}/og-image.png`],
+    images: ['/opengraph-image'],
     creator: "@memeexplainer",
   },
   robots: {
@@ -114,17 +113,15 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/apple-icon" />
+        <link rel="manifest" href="/manifest.webmanifest" />
         <meta name="theme-color" content="#9333ea" />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <GoogleAnalytics />
-        <LanguageProvider>
-          {children}
-        </LanguageProvider>
+        {children}
       </body>
     </html>
   );

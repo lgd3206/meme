@@ -1,57 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import https from 'https';
-import http from 'http';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import zh from '@/locales/zh.json';
 import en from '@/locales/en.json';
 import { checkRateLimit, getClientIp } from '@/lib/ratelimit';
 
+export const runtime = 'nodejs';
+
 const translations = { zh, en };
 
-// 配置代理
-const proxyUrl = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+type SupportedLanguage = 'zh' | 'en';
 
-console.log('🌐 代理配置:', proxyUrl || '未配置');
-
-// 创建代理 Agent（兼容 http 和 https）
-let httpAgent: http.Agent | undefined;
-let httpsAgent: https.Agent | undefined;
-
-if (proxyUrl) {
-  console.log('✅ 启用代理:', proxyUrl);
-  const agent = new HttpsProxyAgent(proxyUrl);
-  httpAgent = agent as any;
-  httpsAgent = agent as any;
+function normalizeLanguage(value: unknown): SupportedLanguage {
+  return value === 'en' ? 'en' : 'zh';
 }
 
-// 初始化 Grok API 客户端
-const client = new OpenAI({
-  apiKey: process.env.XAI_API_KEY,
-  baseURL: 'https://api.x.ai/v1',
-  timeout: 60000,
-  maxRetries: 2,
-  httpAgent: httpsAgent,
-} as any);
-
 export async function POST(request: NextRequest) {
+  const isDev = process.env.NODE_ENV === 'development';
+
+  let language: SupportedLanguage = 'zh';
+
   try {
-    const { imageData, language = 'zh' } = await request.json();
+    const body: unknown = await request.json().catch(() => null);
 
-    // 速率限制检查
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json(
+        { success: false, error: '请求格式错误' },
+        { status: 400 }
+      );
+    }
+
+    const imageData = (body as { imageData?: unknown }).imageData;
+    language = normalizeLanguage((body as { language?: unknown }).language);
+
     const ip = getClientIp(request);
-    console.log('🌐 请求 IP:', ip);
-
     const rateLimitResult = await checkRateLimit(ip);
 
     if (!rateLimitResult.success) {
-      console.warn('⚠️ 速率限制触发:', ip);
       return NextResponse.json(
         {
           success: false,
-          error: language === 'zh'
-            ? `请求过于频繁，请稍后再试。剩余次数：${rateLimitResult.remaining}/${rateLimitResult.limit}`
-            : `Too many requests. Please try again later. Remaining: ${rateLimitResult.remaining}/${rateLimitResult.limit}`,
+          error:
+            language === 'zh'
+              ? `请求过于频繁，请稍后再试。剩余次数：${rateLimitResult.remaining}/${rateLimitResult.limit}`
+              : `Too many requests. Please try again later. Remaining: ${rateLimitResult.remaining}/${rateLimitResult.limit}`,
           rateLimit: {
             limit: rateLimitResult.limit,
             remaining: rateLimitResult.remaining,
@@ -69,36 +61,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('✅ 速率限制检查通过，剩余次数:', rateLimitResult.remaining);
-
-    // 检查 API Key
     if (!process.env.XAI_API_KEY) {
-      console.error('❌ XAI_API_KEY 未配置');
       return NextResponse.json(
         {
           success: false,
-          error: 'API Key 未配置，请在 .env.local 中配置 XAI_API_KEY'
+          error: 'API Key 未配置，请在环境变量中配置 XAI_API_KEY',
         },
         { status: 500 }
       );
     }
 
-    if (!imageData) {
+    if (typeof imageData !== 'string' || imageData.length === 0) {
       return NextResponse.json(
-        { success: false, error: '请上传图片' },
+        { success: false, error: language === 'zh' ? '请上传图片' : 'Please upload an image.' },
         { status: 400 }
       );
     }
 
-    console.log('📤 开始调用 Grok API...');
-    console.log('🌐 语言:', language);
-    console.log('🔑 API Key 前缀:', process.env.XAI_API_KEY?.substring(0, 10) + '...');
+    if (!imageData.startsWith('data:image/')) {
+      return NextResponse.json(
+        { success: false, error: language === 'zh' ? '图片格式不支持' : 'Unsupported image format.' },
+        { status: 400 }
+      );
+    }
 
-    // 根据语言选择提示词
-    const lang: 'zh' | 'en' = (language === 'zh' || language === 'en') ? language : 'zh';
-    const promptText = translations[lang].apiPrompt.systemPrompt;
+    const MAX_IMAGE_DATA_CHARS = 4_000_000;
+    if (imageData.length > MAX_IMAGE_DATA_CHARS) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: language === 'zh' ? '图片过大，请压缩后再试' : 'Image is too large. Please compress and try again.',
+        },
+        { status: 413 }
+      );
+    }
 
-    // 调用 Grok Vision API 分析梗图
+    const proxyUrl = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
+    const proxyAgent = proxyUrl ? new HttpsProxyAgent(proxyUrl) : undefined;
+
+    const client = new OpenAI({
+      apiKey: process.env.XAI_API_KEY,
+      baseURL: 'https://api.x.ai/v1',
+      timeout: 60000,
+      maxRetries: 2,
+      httpAgent: proxyAgent,
+    });
+
+    const promptText = translations[language].apiPrompt.systemPrompt;
+
     const completion = await client.chat.completions.create({
       model: 'grok-2-vision-1212',
       messages: [
@@ -122,48 +132,37 @@ export async function POST(request: NextRequest) {
       max_tokens: 1500,
     });
 
-    console.log('✅ Grok API 调用成功');
-
-    const explanation = completion.choices[0]?.message?.content || '无法解析该图片';
+    const explanation =
+      completion.choices[0]?.message?.content ||
+      (language === 'zh' ? '无法解析该图片' : 'Unable to analyze this image.');
 
     return NextResponse.json({
       success: true,
       explanation,
       model: 'grok-2-vision-1212',
     });
-  } catch (error: any) {
-    console.error('❌ Grok API 错误详情:');
-    console.error('错误类型:', error.constructor.name);
-    console.error('错误消息:', error.message);
-    console.error('错误对象:', JSON.stringify(error, null, 2));
+  } catch (error: unknown) {
+    const errorMessageRaw = error instanceof Error ? error.message : '';
+    const errorStack = error instanceof Error ? error.stack : undefined;
 
-    // 提取更详细的错误信息
-    let errorMessage = error.message || '分析失败，请稍后重试';
-    let errorDetails = '';
+    let errorMessage = errorMessageRaw || (language === 'zh' ? '分析失败，请稍后重试' : 'Analysis failed. Please try again later.');
 
-    if (error.error) {
-      errorDetails = error.error.message || JSON.stringify(error.error);
-    }
-
-    // 特殊错误处理
-    if (error.message?.includes('API key')) {
-      errorMessage = 'API Key 无效，请检查配置';
-    } else if (error.message?.includes('quota')) {
-      errorMessage = 'API 额度不足，请充值';
-    } else if (error.message?.includes('network') || error.message?.includes('connect')) {
-      errorMessage = '网络连接失败，请检查网络或稍后重试';
+    if (errorMessageRaw.includes('API key')) {
+      errorMessage = language === 'zh' ? 'API Key 无效，请检查配置' : 'Invalid API key. Please check your configuration.';
+    } else if (errorMessageRaw.includes('quota')) {
+      errorMessage = language === 'zh' ? 'API 额度不足，请充值' : 'API quota exceeded. Please top up.';
+    } else if (errorMessageRaw.includes('network') || errorMessageRaw.includes('connect')) {
+      errorMessage =
+        language === 'zh'
+          ? '网络连接失败，请检查网络或稍后重试'
+          : 'Network connection failed. Please try again later.';
     }
 
     return NextResponse.json(
       {
         success: false,
         error: errorMessage,
-        details: errorDetails,
-        debugInfo: process.env.NODE_ENV === 'development' ? {
-          type: error.constructor.name,
-          message: error.message,
-          stack: error.stack?.split('\n').slice(0, 3),
-        } : undefined,
+        details: isDev ? errorStack : undefined,
       },
       { status: 500 }
     );
